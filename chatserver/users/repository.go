@@ -1,9 +1,12 @@
 package users
 
 import (
+	"context"
 	"errors"
+	"os"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 )
 
 type User struct {
@@ -12,9 +15,27 @@ type User struct {
 	Email    string `json:"email"`
 }
 
+type UserRepo struct {
+	conn *pgx.Conn
+}
+
 var users = make(map[string]User)
 
-func CreateUser(user User) (User, error) {
+func (r *UserRepo) Close() {
+	r.conn.Close(context.Background())
+}
+
+func NewUserRepo() (UserRepo, error) {
+	pg_url := os.Getenv("POSTGRES_URL")
+	conn, err := pgx.Connect(context.Background(), pg_url)
+	if err != nil {
+		return UserRepo{}, err
+	}
+
+	return UserRepo{conn: conn}, nil
+}
+
+func (r *UserRepo) CreateUser(user User) (User, error) {
 	newId, err := uuid.NewV7()
 	if err != nil {
 		return User{}, errors.New("failed to generate new user id")
@@ -24,7 +45,7 @@ func CreateUser(user User) (User, error) {
 	return user, nil
 }
 
-func GetUsers() []User {
+func (r *UserRepo) GetUsers() []User {
 	values := make([]User, 0, len(users))
 
 	for _, v := range users {
@@ -34,12 +55,12 @@ func GetUsers() []User {
 	return values
 }
 
-func GetUser(id string) (User, bool) {
+func (r *UserRepo) GetUser(id string) (User, bool) {
 	user, isFound := users[id]
 	return user, isFound
 }
 
-func UpdateUser(id string, user User) (User, error) {
+func (r *UserRepo) UpdateUser(id string, user User) (User, error) {
 	user.Id = id
 	_, ok := users[id]
 	if !ok {
@@ -50,7 +71,7 @@ func UpdateUser(id string, user User) (User, error) {
 
 }
 
-func DeleteUser(id string) error {
+func (r *UserRepo) DeleteUser(id string) error {
 	_, ok := users[id]
 	if !ok {
 		return errors.New("user not found")

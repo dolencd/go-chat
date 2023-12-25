@@ -5,9 +5,11 @@ import (
 
 	"github.com/dolencd/go-playground/chatserver/users"
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 )
 
 func setupRouter() *gin.Engine {
+	godotenv.Load("../.env")
 	// Disable Console Color
 	// gin.DisableConsoleColor()
 	r := gin.Default()
@@ -17,7 +19,13 @@ func setupRouter() *gin.Engine {
 		c.String(http.StatusOK, "pong")
 	})
 
-	users.AssignRoutes(&r.RouterGroup)
+	userRepo, err := users.NewUserRepo()
+	if err != nil {
+		panic(err)
+	}
+	users.NewUserController(&r.RouterGroup, &userRepo)
+
+	defer userRepo.Close()
 
 	return r
 }

@@ -4,25 +4,33 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
-func AssignRoutes(r *gin.RouterGroup) {
-	r.GET("/users", handleGetUsers)
-	r.GET("/users/:id", handleGetUserById)
-	r.POST("/users", handleCreateUser)
-	r.PUT("/users/:id", handleUpdateUser)
-	r.DELETE("/users/:id", handleDeleteUser)
+type UserController struct {
+	ur *UserRepo
 }
 
-func handleGetUsers(c *gin.Context) {
-	c.JSON(http.StatusOK, GetUsers())
+func NewUserController(r *gin.RouterGroup, ur *UserRepo) UserController {
+
+	uc := UserController{ur: ur}
+
+	r.GET("/users", uc.HandleGetUsers)
+	r.GET("/users/:id", uc.HandleGetUserById)
+	r.POST("/users", uc.HandleCreateUser)
+	r.PUT("/users/:id", uc.HandleUpdateUser)
+	r.DELETE("/users/:id", uc.HandleDeleteUser)
+
+	return uc
 }
 
-func handleGetUserById(c *gin.Context) {
+func (uc *UserController) HandleGetUsers(c *gin.Context) {
+	c.JSON(http.StatusOK, uc.ur.GetUsers())
+}
+
+func (uc *UserController) HandleGetUserById(c *gin.Context) {
 	id := c.Param("id")
 
-	user, isFound := GetUser(id)
+	user, isFound := uc.ur.GetUser(id)
 	if !isFound {
 		c.AbortWithStatus(http.StatusNotFound)
 		return
@@ -31,7 +39,7 @@ func handleGetUserById(c *gin.Context) {
 	c.JSON(http.StatusOK, user)
 }
 
-func handleCreateUser(c *gin.Context) {
+func (uc *UserController) HandleCreateUser(c *gin.Context) {
 	var user User
 
 	if err := c.BindJSON(&user); err != nil {
@@ -39,46 +47,42 @@ func handleCreateUser(c *gin.Context) {
 		return
 	}
 
-	newId, _ := uuid.NewV7()
-	user.Id = newId.String()
-	users[user.Id] = user
-
-	c.JSON(http.StatusCreated, user)
-}
-
-func handleUpdateUser(c *gin.Context) {
-	id := c.Param("id")
-
-	_, ok := users[id]
-	if !ok {
-		c.AbortWithStatus(http.StatusNotFound)
+	createdUser, err := uc.ur.CreateUser(user)
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
 
-	var updatedUser User
+	c.JSON(http.StatusCreated, createdUser)
+}
 
-	if err := c.BindJSON(&updatedUser); err != nil {
+func (uc *UserController) HandleUpdateUser(c *gin.Context) {
+	id := c.Param("id")
+
+	var user User
+
+	if err := c.BindJSON(&user); err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	updatedUser.Id = id
-
-	users[id] = updatedUser
+	updatedUser, err := uc.ur.UpdateUser(id, user)
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err)
+		return
+	}
 
 	c.JSON(http.StatusOK, updatedUser)
 }
 
-func handleDeleteUser(c *gin.Context) {
+func (uc *UserController) HandleDeleteUser(c *gin.Context) {
 	id := c.Param("id")
 
-	_, ok := users[id]
-	if !ok {
-		c.AbortWithStatus(http.StatusNotFound)
+	err := uc.ur.DeleteUser(id)
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
-
-	delete(users, id)
 
 	c.Status(http.StatusNoContent)
 }
