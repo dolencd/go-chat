@@ -24,7 +24,11 @@ func NewUserController(r *gin.RouterGroup, ur *UserRepo) UserController {
 }
 
 func (uc *UserController) HandleGetUsers(c *gin.Context) {
-	c.JSON(http.StatusOK, uc.ur.GetUsers())
+	users, err := uc.ur.GetUsers()
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err)
+	}
+	c.JSON(http.StatusOK, users)
 }
 
 func (uc *UserController) HandleGetUserById(c *gin.Context) {

@@ -3,6 +3,7 @@ package users
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 
 	"github.com/google/uuid"
@@ -17,12 +18,6 @@ type User struct {
 
 type UserRepo struct {
 	conn *pgx.Conn
-}
-
-var users = make(map[string]User)
-
-func (r *UserRepo) Close() {
-	r.conn.Close(context.Background())
 }
 
 func NewUserRepo() (UserRepo, error) {
@@ -41,42 +36,53 @@ func (r *UserRepo) CreateUser(user User) (User, error) {
 		return User{}, errors.New("failed to generate new user id")
 	}
 	user.Id = newId.String()
-	users[user.Id] = user
+	_, err = r.conn.Exec(context.Background(), "INSERT INTO users (Id, Username, Email) VALUES ($1, $2, $3)", user.Id, user.Username, user.Email)
+	if err != nil {
+		return User{}, err
+	}
 	return user, nil
 }
 
-func (r *UserRepo) GetUsers() []User {
-	values := make([]User, 0, len(users))
+func (r *UserRepo) GetUsers() ([]User, error) {
+	rows, err := r.conn.Query(context.Background(), "SELECT Id, Username, Email FROM Users")
+	if err != nil {
+		return nil, err
+	}
+	users := make([]User, 0, 3)
+	for rows.Next() {
+		user := User{}
+		err := rows.Scan(&user.Id, &user.Username, &user.Email)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, user)
 
-	for _, v := range users {
-		values = append(values, v)
 	}
 
-	return values
+	return users, nil
 }
 
 func (r *UserRepo) GetUser(id string) (User, bool) {
-	user, isFound := users[id]
-	return user, isFound
+	row := r.conn.QueryRow(context.Background(), "SELECT Id, Username, Email FROM Users WHERE Id=$1", id)
+	user := User{}
+	err := row.Scan(&user.Id, &user.Username, &user.Email)
+	if err != nil {
+		fmt.Printf("err: %v\n", err)
+		return User{}, false
+	}
+	return user, true
 }
 
 func (r *UserRepo) UpdateUser(id string, user User) (User, error) {
-	user.Id = id
-	_, ok := users[id]
-	if !ok {
-		return User{}, errors.New("user not found")
+	_, err := r.conn.Exec(context.Background(), "UPDATE Users SET Username=$2, Email=$3 WHERE Id=$1", id, user.Username, user.Email)
+	if err != nil {
+		return User{}, err
 	}
-	users[id] = user
 	return user, nil
 
 }
 
 func (r *UserRepo) DeleteUser(id string) error {
-	_, ok := users[id]
-	if !ok {
-		return errors.New("user not found")
-	}
-
-	delete(users, id)
-	return nil
+	_, err := r.conn.Exec(context.Background(), "DELETE FROM Users WHERE id=$1", id)
+	return err
 }

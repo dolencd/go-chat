@@ -25,8 +25,6 @@ func setupRouter() *gin.Engine {
 	}
 	users.NewUserController(&r.RouterGroup, &userRepo)
 
-	defer userRepo.Close()
-
 	return r
 }
 
