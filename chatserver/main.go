@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 
+	"github.com/dolencd/go-playground/chatserver/common"
 	"github.com/dolencd/go-playground/chatserver/users"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -10,12 +11,11 @@ import (
 
 func setupRouter() *gin.Engine {
 	godotenv.Load("../.env")
-	// Disable Console Color
-	// gin.DisableConsoleColor()
+
 	r := gin.Default()
 
-	// Ping test
-	r.GET("/ping", func(c *gin.Context) {
+	public := r.Group("/api/")
+	public.GET("/ping", func(c *gin.Context) {
 		c.String(http.StatusOK, "pong")
 	})
 
@@ -23,7 +23,10 @@ func setupRouter() *gin.Engine {
 	if err != nil {
 		panic(err)
 	}
-	users.NewUserController(&r.RouterGroup, &userRepo)
+	private := r.Group("/api/")
+	private.Use(common.PopulateUserMiddleware(&userRepo))
+	private.Use(common.RequireUserMiddleware())
+	users.NewUserController(private, &userRepo)
 
 	return r
 }
