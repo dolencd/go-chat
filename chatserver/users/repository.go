@@ -4,30 +4,23 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 )
 
 type User struct {
-	Id       string `json:"id"`
-	Username string `json:"username"`
-	Email    string `json:"email"`
+	Id       string `json:"id" pgx:"id"`
+	Username string `json:"username" pgx:"username"`
+	Email    string `json:"email" pgx:"email"`
 }
 
 type UserRepo struct {
 	conn *pgx.Conn
 }
 
-func NewUserRepo() (UserRepo, error) {
-	pg_url := os.Getenv("POSTGRES_URL")
-	conn, err := pgx.Connect(context.Background(), pg_url)
-	if err != nil {
-		return UserRepo{}, err
-	}
-
-	return UserRepo{conn: conn}, nil
+func NewUserRepo(conn *pgx.Conn) UserRepo {
+	return UserRepo{conn: conn}
 }
 
 func (r *UserRepo) CreateUser(user User) (User, error) {
@@ -36,7 +29,7 @@ func (r *UserRepo) CreateUser(user User) (User, error) {
 		return User{}, errors.New("failed to generate new user id")
 	}
 	user.Id = newId.String()
-	_, err = r.conn.Exec(context.Background(), "INSERT INTO users (Id, Username, Email) VALUES ($1, $2, $3)", user.Id, user.Username, user.Email)
+	_, err = r.conn.Exec(context.Background(), "INSERT INTO app_user (id, username, email) VALUES ($1, $2, $3)", user.Id, user.Username, user.Email)
 	if err != nil {
 		return User{}, err
 	}
@@ -44,7 +37,7 @@ func (r *UserRepo) CreateUser(user User) (User, error) {
 }
 
 func (r *UserRepo) GetUsers() ([]User, error) {
-	rows, err := r.conn.Query(context.Background(), "SELECT Id, Username, Email FROM Users")
+	rows, err := r.conn.Query(context.Background(), "SELECT id, username, email FROM app_user")
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +56,7 @@ func (r *UserRepo) GetUsers() ([]User, error) {
 }
 
 func (r *UserRepo) GetUser(id string) (User, bool) {
-	row := r.conn.QueryRow(context.Background(), "SELECT Id, Username, Email FROM Users WHERE Id=$1", id)
+	row := r.conn.QueryRow(context.Background(), "SELECT id, username, email FROM app_user WHERE id=$1", id)
 	user := User{}
 	err := row.Scan(&user.Id, &user.Username, &user.Email)
 	if err != nil {
@@ -74,7 +67,8 @@ func (r *UserRepo) GetUser(id string) (User, bool) {
 }
 
 func (r *UserRepo) UpdateUser(id string, user User) (User, error) {
-	_, err := r.conn.Exec(context.Background(), "UPDATE Users SET Username=$2, Email=$3 WHERE Id=$1", id, user.Username, user.Email)
+	user.Id = id
+	_, err := r.conn.Exec(context.Background(), "UPDATE app_user SET username=$2, email=$3 WHERE id=$1", id, user.Username, user.Email)
 	if err != nil {
 		return User{}, err
 	}
@@ -83,6 +77,6 @@ func (r *UserRepo) UpdateUser(id string, user User) (User, error) {
 }
 
 func (r *UserRepo) DeleteUser(id string) error {
-	_, err := r.conn.Exec(context.Background(), "DELETE FROM Users WHERE id=$1", id)
+	_, err := r.conn.Exec(context.Background(), "DELETE FROM app_user WHERE id=$1", id)
 	return err
 }

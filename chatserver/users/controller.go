@@ -10,15 +10,15 @@ type UserController struct {
 	ur *UserRepo
 }
 
-func NewUserController(r *gin.RouterGroup, ur *UserRepo) UserController {
+func NewUserController(router *gin.RouterGroup, ur *UserRepo) UserController {
 
 	uc := UserController{ur: ur}
 
-	r.GET("/users", uc.HandleGetUsers)
-	r.GET("/users/:id", uc.HandleGetUserById)
-	r.POST("/users", uc.HandleCreateUser)
-	r.PUT("/users/:id", uc.HandleUpdateUser)
-	r.DELETE("/users/:id", uc.HandleDeleteUser)
+	router.GET("/users", uc.HandleGetUsers)
+	router.GET("/users/:id", uc.HandleGetUserById)
+	router.POST("/users", uc.HandleCreateUser)
+	router.PUT("/users/:id", uc.HandleUpdateUser)
+	router.DELETE("/users/:id", uc.HandleDeleteUser)
 
 	return uc
 }

@@ -1,9 +1,9 @@
-create table Users(
-  Id uuid primary key,
-  Username varchar not null,
-  Email varchar not null
+create table app_user(
+  id uuid primary key,
+  username varchar not null,
+  email varchar not null
 );
 
 ---- create above / drop below ----
 
-drop table Users
+drop table app_user;

@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/dolencd/go-playground/chatserver/common"
+	"github.com/dolencd/go-playground/chatserver/rooms"
 	"github.com/dolencd/go-playground/chatserver/users"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -11,7 +12,10 @@ import (
 
 func setupRouter() *gin.Engine {
 	godotenv.Load("../.env")
-
+	conn, err := common.InitializeConnection()
+	if err != nil {
+		panic(err)
+	}
 	r := gin.Default()
 
 	public := r.Group("/api/")
@@ -19,14 +23,13 @@ func setupRouter() *gin.Engine {
 		c.String(http.StatusOK, "pong")
 	})
 
-	userRepo, err := users.NewUserRepo()
-	if err != nil {
-		panic(err)
-	}
+	userRepo := users.NewUserRepo(conn)
+	roomRepo := rooms.NewRoomRepo(conn)
 	private := r.Group("/api/")
 	private.Use(common.PopulateUserMiddleware(&userRepo))
 	private.Use(common.RequireUserMiddleware())
-	users.NewUserController(private, &userRepo)
+	users.NewUserController(public, &userRepo)
+	rooms.NewRoomController(public, &roomRepo)
 
 	return r
 }
