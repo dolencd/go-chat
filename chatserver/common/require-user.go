@@ -9,8 +9,6 @@ import (
 )
 
 func RequireUserMiddleware() gin.HandlerFunc {
-	// Do some initialization logic here
-	// Foo()
 	return func(c *gin.Context) {
 		user, ok := c.Value("user").(users.User)
 		if !ok {
