@@ -1,0 +1,26 @@
+[linters]
+enable = [
+  "errcheck",
+  "staticcheck",
+  "unused",
+  "gosimple",
+  "structcheck",
+  "varcheck",
+  "ineffassign",
+  "deadcode",
+  "typecheck",
+  "golint",
+  "govet",
+  "gocyclo",
+  "goimports",
+  "misspell",
+  "unconvert",
+  "bodyclose"
+]
+
+[linters-settings]
+[linters-settings.errcheck]
+check-blank = true
+
+[linters-settings.gofmt]
+simplify = true

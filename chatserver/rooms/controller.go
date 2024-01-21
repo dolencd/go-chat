@@ -1,6 +1,7 @@
 package rooms
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -31,7 +32,10 @@ func NewRoomController(router *gin.RouterGroup, rr *RoomRepo) RoomController {
 func (rc *RoomController) HandleGetRooms(c *gin.Context) {
 	rooms, err := rc.rr.GetRooms()
 	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, err)
+		err := c.AbortWithError(http.StatusInternalServerError, err)
+		if err != nil {
+			log.Println(err)
+		}
 	}
 	c.JSON(http.StatusOK, rooms)
 }
@@ -58,7 +62,10 @@ func (rc *RoomController) HandleCreateRoom(c *gin.Context) {
 
 	createdRoom, err := rc.rr.CreateRoom(room)
 	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, err)
+		err := c.AbortWithError(http.StatusInternalServerError, err)
+		if err != nil {
+			log.Println(err)
+		}
 		return
 	}
 
@@ -77,7 +84,10 @@ func (rc *RoomController) HandleUpdateRoom(c *gin.Context) {
 
 	updatedRoom, err := rc.rr.UpdateRoom(id, room)
 	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, err)
+		err := c.AbortWithError(http.StatusInternalServerError, err)
+		if err != nil {
+			log.Println(err)
+		}
 		return
 	}
 
@@ -89,7 +99,10 @@ func (rc *RoomController) HandleDeleteRoom(c *gin.Context) {
 
 	err := rc.rr.DeleteRoom(id)
 	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, err)
+		err := c.AbortWithError(http.StatusInternalServerError, err)
+		if err != nil {
+			log.Println(err)
+		}
 		return
 	}
 
