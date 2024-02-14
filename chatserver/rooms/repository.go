@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/dolencd/go-playground/chatserver/messages"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 )
@@ -98,4 +99,22 @@ func (r *RoomRepo) RemoveUserFromRoom(userId, roomId string) error {
 		return err
 	}
 	return nil
+}
+
+func (r *RoomRepo) GetRoomMessages(roomId string) ([]messages.Message, error) {
+	rows, err := r.conn.Query(context.Background(), `SELECT id, text, room_id, created_at, sender_user_id FROM message WHERE room_id = $1 ORDER BY created_at DESC`, roomId)
+	if err != nil {
+		return nil, err
+	}
+	msgs := make([]messages.Message, 0, 3)
+	for rows.Next() {
+		msg := messages.Message{}
+		err := rows.Scan(&msg.Id, &msg.Text, &msg.RoomId, &msg.CreatedAt, &msg.SenderUserId)
+		if err != nil {
+			return nil, err
+		}
+		msgs = append(msgs, msg)
+	}
+
+	return msgs, nil
 }

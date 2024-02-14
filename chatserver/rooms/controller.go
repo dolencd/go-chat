@@ -27,6 +27,8 @@ func NewRoomController(router *gin.RouterGroup, rr *RoomRepo) RoomController {
 	router.POST("/rooms/:id/join", rc.HandleJoinRoom)
 	router.POST("/rooms/:id/leave", rc.HandleLeaveRoom)
 
+	router.GET("/rooms/:id/messages", rc.HandleGetRoomMessages)
+
 	return rc
 }
 
@@ -131,4 +133,16 @@ func (rc *RoomController) HandleLeaveRoom(c *gin.Context) {
 		return
 	}
 	c.Status(http.StatusNoContent)
+}
+
+func (rc *RoomController) HandleGetRoomMessages(c *gin.Context) {
+	roomId := c.Param("id")
+	messages, err := rc.rr.GetRoomMessages(roomId)
+	if err != nil {
+		if err := c.AbortWithError(http.StatusInternalServerError, err); err != nil {
+			log.Printf("Failed to abort with error: %v", err)
+		}
+		return
+	}
+	c.JSON(http.StatusOK, messages)
 }
