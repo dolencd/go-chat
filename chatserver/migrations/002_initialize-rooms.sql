@@ -5,8 +5,8 @@ create table room(
 
 create table user_room(
   id uuid primary key,
-  user_id uuid not null,
-  room_id uuid not null
+  user_id uuid not null references app_user(id) on delete cascade,
+  room_id uuid not null references room(id) on delete cascade
 );
 
 ---- create above / drop below ----

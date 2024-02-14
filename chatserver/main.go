@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/dolencd/go-playground/chatserver/common"
+	"github.com/dolencd/go-playground/chatserver/messages"
 	"github.com/dolencd/go-playground/chatserver/rooms"
 	"github.com/dolencd/go-playground/chatserver/users"
 	"github.com/gin-gonic/gin"
@@ -26,11 +27,13 @@ func setupRouter() *gin.Engine {
 		c.String(http.StatusOK, "pong")
 	})
 
+	messageRepo := messages.NewMessageRepo(conn)
 	userRepo := users.NewUserRepo(conn)
 	roomRepo := rooms.NewRoomRepo(conn)
 	private := r.Group("/api/")
 	private.Use(common.PopulateUserMiddleware(&userRepo))
 	private.Use(common.RequireUserMiddleware())
+	messages.NewMessageController(private, &messageRepo)
 	users.NewUserController(public, &userRepo)
 	rooms.NewRoomController(public, &roomRepo)
 
