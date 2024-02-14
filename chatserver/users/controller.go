@@ -26,10 +26,10 @@ func NewUserController(router *gin.RouterGroup, ur *UserRepo) UserController {
 func (uc *UserController) HandleGetUsers(c *gin.Context) {
 	users, err := uc.ur.GetUsers()
 	if err != nil {
-		err := c.AbortWithError(http.StatusInternalServerError, err)
-		if err != nil {
-			log.Println(err)
+		if err := c.AbortWithError(http.StatusInternalServerError, err); err != nil {
+			log.Printf("Failed to abort with error: %v", err)
 		}
+		return
 	}
 	c.JSON(http.StatusOK, users)
 }
@@ -56,9 +56,8 @@ func (uc *UserController) HandleCreateUser(c *gin.Context) {
 
 	createdUser, err := uc.ur.CreateUser(user)
 	if err != nil {
-		err := c.AbortWithError(http.StatusInternalServerError, err)
-		if err != nil {
-			log.Println(err)
+		if err := c.AbortWithError(http.StatusInternalServerError, err); err != nil {
+			log.Printf("Failed to abort with error: %v", err)
 		}
 		return
 	}
@@ -78,9 +77,8 @@ func (uc *UserController) HandleUpdateUser(c *gin.Context) {
 
 	updatedUser, err := uc.ur.UpdateUser(id, user)
 	if err != nil {
-		err := c.AbortWithError(http.StatusInternalServerError, err)
-		if err != nil {
-			log.Println(err)
+		if err := c.AbortWithError(http.StatusInternalServerError, err); err != nil {
+			log.Printf("Failed to abort with error: %v", err)
 		}
 		return
 	}
@@ -93,9 +91,8 @@ func (uc *UserController) HandleDeleteUser(c *gin.Context) {
 
 	err := uc.ur.DeleteUser(id)
 	if err != nil {
-		err := c.AbortWithError(http.StatusInternalServerError, err)
-		if err != nil {
-			log.Println(err)
+		if err := c.AbortWithError(http.StatusInternalServerError, err); err != nil {
+			log.Printf("Failed to abort with error: %v", err)
 		}
 		return
 	}

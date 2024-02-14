@@ -4,16 +4,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 )
 
 type Message struct {
-	Id        string `json:"id" pgx:"id"`
-	CreatedAt string `json:"created_at" pgx:"created_at"`
-	Text      string `json:"text" pgx:"text"`
-	RoomId    string `json:"room_id" pgx:"room_id"`
+	Id           string    `json:"id" pgx:"id"`
+	CreatedAt    time.Time `json:"createdAt" pgx:"created_at"`
+	Text         string    `json:"text" pgx:"text" binding:"required"`
+	RoomId       string    `json:"roomId" pgx:"room_id" binding:"required"`
+	SenderUserId string    `json:"senderUserId" pgx:"sender_user_id"`
 }
 
 type MessageRepo struct {
@@ -30,7 +32,7 @@ func (r *MessageRepo) CreateMessage(msg Message) (Message, error) {
 		return Message{}, errors.New("failed to generate new message id")
 	}
 	msg.Id = newId.String()
-	_, err = r.conn.Exec(context.Background(), "INSERT INTO message (id, text, room_id) VALUES ($1, $2)", msg.Id, msg.Text, msg.RoomId)
+	_, err = r.conn.Exec(context.Background(), "INSERT INTO message (id, text, room_id, sender_user_id) VALUES ($1, $2, $3, $4)", msg.Id, msg.Text, msg.RoomId, msg.SenderUserId)
 	if err != nil {
 		return Message{}, err
 	}
@@ -38,14 +40,14 @@ func (r *MessageRepo) CreateMessage(msg Message) (Message, error) {
 }
 
 func (r *MessageRepo) GetMessages() ([]Message, error) {
-	rows, err := r.conn.Query(context.Background(), "SELECT id, text, room_id created_at FROM messages")
+	rows, err := r.conn.Query(context.Background(), "SELECT id, text, room_id, created_at, sender_user_id FROM message")
 	if err != nil {
 		return nil, err
 	}
 	msgs := make([]Message, 0, 3)
 	for rows.Next() {
 		msg := Message{}
-		err := rows.Scan(&msg.Id, &msg.Text, &msg.RoomId, &msg.CreatedAt)
+		err := rows.Scan(&msg.Id, &msg.Text, &msg.RoomId, &msg.CreatedAt, &msg.SenderUserId)
 		if err != nil {
 			return nil, err
 		}

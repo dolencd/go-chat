@@ -2,7 +2,8 @@ create table message(
   id uuid primary key,
   created_at timestamp not null default current_timestamp,
   text text not null,
-  room_id uuid not null references room(id) on delete cascade
+  room_id uuid not null references room(id) on delete cascade,
+  sender_user_id uuid not null references app_user(id) on delete cascade
 );
 
 create index idx_message_room_id_created_at on message(room_id, created_at desc);

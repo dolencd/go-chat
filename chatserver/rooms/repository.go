@@ -11,7 +11,7 @@ import (
 
 type Room struct {
 	Id   string `json:"id" pgx:"id"`
-	Name string `json:"name" pgx:"name"`
+	Name string `json:"name" pgx:"name" binding:"required"`
 }
 
 type RoomRepo struct {

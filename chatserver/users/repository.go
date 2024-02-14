@@ -11,8 +11,8 @@ import (
 
 type User struct {
 	Id       string `json:"id" pgx:"id"`
-	Username string `json:"username" pgx:"username"`
-	Email    string `json:"email" pgx:"email"`
+	Username string `json:"username" pgx:"username" binding:"required"`
+	Email    string `json:"email" pgx:"email" binding:"required"`
 }
 
 type UserRepo struct {

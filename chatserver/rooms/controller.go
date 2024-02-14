@@ -33,10 +33,10 @@ func NewRoomController(router *gin.RouterGroup, rr *RoomRepo) RoomController {
 func (rc *RoomController) HandleGetRooms(c *gin.Context) {
 	rooms, err := rc.rr.GetRooms()
 	if err != nil {
-		err := c.AbortWithError(http.StatusInternalServerError, err)
-		if err != nil {
-			log.Println(err)
+		if err := c.AbortWithError(http.StatusInternalServerError, err); err != nil {
+			log.Printf("Failed to abort with error: %v", err)
 		}
+		return
 	}
 	c.JSON(http.StatusOK, rooms)
 }
@@ -63,9 +63,8 @@ func (rc *RoomController) HandleCreateRoom(c *gin.Context) {
 
 	createdRoom, err := rc.rr.CreateRoom(room)
 	if err != nil {
-		err := c.AbortWithError(http.StatusInternalServerError, err)
-		if err != nil {
-			log.Println(err)
+		if err := c.AbortWithError(http.StatusInternalServerError, err); err != nil {
+			log.Printf("Failed to abort with error: %v", err)
 		}
 		return
 	}
@@ -85,9 +84,8 @@ func (rc *RoomController) HandleUpdateRoom(c *gin.Context) {
 
 	updatedRoom, err := rc.rr.UpdateRoom(id, room)
 	if err != nil {
-		err := c.AbortWithError(http.StatusInternalServerError, err)
-		if err != nil {
-			log.Println(err)
+		if err := c.AbortWithError(http.StatusInternalServerError, err); err != nil {
+			log.Printf("Failed to abort with error: %v", err)
 		}
 		return
 	}
@@ -100,9 +98,8 @@ func (rc *RoomController) HandleDeleteRoom(c *gin.Context) {
 
 	err := rc.rr.DeleteRoom(id)
 	if err != nil {
-		err := c.AbortWithError(http.StatusInternalServerError, err)
-		if err != nil {
-			log.Println(err)
+		if err := c.AbortWithError(http.StatusInternalServerError, err); err != nil {
+			log.Printf("Failed to abort with error: %v", err)
 		}
 		return
 	}
