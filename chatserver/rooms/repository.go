@@ -59,7 +59,7 @@ func (r *RoomRepo) GetRoom(id string) (Room, bool) {
 	room := Room{}
 	err := row.Scan(&room.Id, &room.Name)
 	if err != nil {
-		fmt.Printf("err: %v\n", err)
+		fmt.Errorf("err: %v\n", err)
 		return Room{}, false
 	}
 	return room, true
@@ -78,4 +78,24 @@ func (r *RoomRepo) UpdateRoom(id string, room Room) (Room, error) {
 func (r *RoomRepo) DeleteRoom(id string) error {
 	_, err := r.conn.Exec(context.Background(), "DELETE FROM room WHERE id=$1", id)
 	return err
+}
+
+func (r *RoomRepo) AddUserToRoom(userId, roomId string) error {
+	newId, err := uuid.NewV7()
+	if err != nil {
+		return errors.New("failed to generate new room id")
+	}
+	_, err = r.conn.Exec(context.Background(), `INSERT INTO user_room (id, user_id, room_id) VALUES ($1, $2, $3)`, newId, userId, roomId)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *RoomRepo) RemoveUserFromRoom(userId, roomId string) error {
+	_, err := r.conn.Exec(context.Background(), `DELETE FROM user_room WHERE user_id = $1 AND room_id = $2`, userId, roomId)
+	if err != nil {
+		return err
+	}
+	return nil
 }

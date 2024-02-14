@@ -11,5 +11,5 @@ create table user_room(
 
 ---- create above / drop below ----
 
-drop table room;
 drop table user_room;
+drop table room;

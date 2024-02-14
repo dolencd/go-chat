@@ -34,8 +34,8 @@ func setupRouter() *gin.Engine {
 	private.Use(common.PopulateUserMiddleware(&userRepo))
 	private.Use(common.RequireUserMiddleware())
 	messages.NewMessageController(private, &messageRepo)
-	users.NewUserController(public, &userRepo)
-	rooms.NewRoomController(public, &roomRepo)
+	users.NewUserController(private, &userRepo)
+	rooms.NewRoomController(private, &roomRepo)
 
 	return r
 }

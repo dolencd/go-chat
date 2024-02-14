@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/dolencd/go-playground/chatserver/users"
 	"github.com/gin-gonic/gin"
 )
 
@@ -110,9 +111,27 @@ func (rc *RoomController) HandleDeleteRoom(c *gin.Context) {
 }
 
 func (rc *RoomController) HandleJoinRoom(c *gin.Context) {
-
+	roomId := c.Param("id")
+	user := c.MustGet("user").(users.User)
+	err := rc.rr.AddUserToRoom(user.Id, roomId)
+	if err != nil {
+		if err := c.AbortWithError(http.StatusInternalServerError, err); err != nil {
+			log.Printf("Failed to abort with error: %v", err)
+		}
+		return
+	}
+	c.Status(http.StatusNoContent)
 }
 
 func (rc *RoomController) HandleLeaveRoom(c *gin.Context) {
-
+	roomId := c.Param("id")
+	user := c.MustGet("user").(users.User)
+	err := rc.rr.RemoveUserFromRoom(user.Id, roomId)
+	if err != nil {
+		if err := c.AbortWithError(http.StatusInternalServerError, err); err != nil {
+			log.Printf("Failed to abort with error: %v", err)
+		}
+		return
+	}
+	c.Status(http.StatusNoContent)
 }
