@@ -7,25 +7,86 @@ package db
 
 import (
 	"context"
-
-	"github.com/jackc/pgx/v5/pgtype"
+	"time"
 )
+
+const addUserToRoom = `-- name: AddUserToRoom :exec
+INSERT INTO user_room (user_id, room_id) VALUES (?, ?) RETURNING id, user_id, room_id
+`
+
+type AddUserToRoomParams struct {
+	UserID int64
+	RoomID int64
+}
+
+func (q *Queries) AddUserToRoom(ctx context.Context, arg AddUserToRoomParams) error {
+	_, err := q.db.ExecContext(ctx, addUserToRoom, arg.UserID, arg.RoomID)
+	return err
+}
+
+const createMessage = `-- name: CreateMessage :one
+
+INSERT INTO message (
+  text, room_id, sender_user_id
+) VALUES (?, ?, ?)
+RETURNING id, created_at, text, room_id, sender_user_id
+`
+
+type CreateMessageParams struct {
+	Text         string
+	RoomID       int64
+	SenderUserID int64
+}
+
+// MARK: Message
+func (q *Queries) CreateMessage(ctx context.Context, arg CreateMessageParams) (Message, error) {
+	row := q.db.QueryRowContext(ctx, createMessage, arg.Text, arg.RoomID, arg.SenderUserID)
+	var i Message
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.Text,
+		&i.RoomID,
+		&i.SenderUserID,
+	)
+	return i, err
+}
+
+const createRoom = `-- name: CreateRoom :one
+
+INSERT INTO room (
+  id, name
+) VALUES (?, ?)
+RETURNING id, name
+`
+
+type CreateRoomParams struct {
+	ID   int64
+	Name string
+}
+
+// MARK: Room
+func (q *Queries) CreateRoom(ctx context.Context, arg CreateRoomParams) (Room, error) {
+	row := q.db.QueryRowContext(ctx, createRoom, arg.ID, arg.Name)
+	var i Room
+	err := row.Scan(&i.ID, &i.Name)
+	return i, err
+}
 
 const createUser = `-- name: CreateUser :one
 INSERT INTO app_user (
-  id, username, email
-) VALUES ($1, $2, $3)
+  username, email
+) VALUES (?, ?)
 RETURNING id, username, email
 `
 
 type CreateUserParams struct {
-	ID       pgtype.UUID
 	Username string
 	Email    string
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (AppUser, error) {
-	row := q.db.QueryRow(ctx, createUser, arg.ID, arg.Username, arg.Email)
+	row := q.db.QueryRowContext(ctx, createUser, arg.Username, arg.Email)
 	var i AppUser
 	err := row.Scan(&i.ID, &i.Username, &i.Email)
 	return i, err
@@ -33,21 +94,120 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (AppUser
 
 const deleteUser = `-- name: DeleteUser :exec
 DELETE FROM app_user
-WHERE id = $1
+WHERE id = ?
 `
 
-func (q *Queries) DeleteUser(ctx context.Context, id pgtype.UUID) error {
-	_, err := q.db.Exec(ctx, deleteUser, id)
+func (q *Queries) DeleteUser(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deleteUser, id)
 	return err
 }
 
-const getUser = `-- name: GetUser :one
-SELECT id, username, email FROM app_user
-WHERE id = $1 LIMIT 1
+const getMessage = `-- name: GetMessage :one
+SELECT id, created_at, text, room_id, sender_user_id FROM message
+WHERE id = ? LIMIT 1
 `
 
-func (q *Queries) GetUser(ctx context.Context, id pgtype.UUID) (AppUser, error) {
-	row := q.db.QueryRow(ctx, getUser, id)
+func (q *Queries) GetMessage(ctx context.Context, id int64) (Message, error) {
+	row := q.db.QueryRowContext(ctx, getMessage, id)
+	var i Message
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.Text,
+		&i.RoomID,
+		&i.SenderUserID,
+	)
+	return i, err
+}
+
+const getRoom = `-- name: GetRoom :one
+SELECT id, name FROM room WHERE id=? LIMIT 1
+`
+
+func (q *Queries) GetRoom(ctx context.Context, id int64) (Room, error) {
+	row := q.db.QueryRowContext(ctx, getRoom, id)
+	var i Room
+	err := row.Scan(&i.ID, &i.Name)
+	return i, err
+}
+
+const getRoomMessages = `-- name: GetRoomMessages :many
+SELECT id, text, room_id, created_at, sender_user_id FROM message WHERE room_id = ?
+`
+
+type GetRoomMessagesRow struct {
+	ID           int64
+	Text         string
+	RoomID       int64
+	CreatedAt    time.Time
+	SenderUserID int64
+}
+
+func (q *Queries) GetRoomMessages(ctx context.Context, roomID int64) ([]GetRoomMessagesRow, error) {
+	rows, err := q.db.QueryContext(ctx, getRoomMessages, roomID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetRoomMessagesRow
+	for rows.Next() {
+		var i GetRoomMessagesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Text,
+			&i.RoomID,
+			&i.CreatedAt,
+			&i.SenderUserID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getRooms = `-- name: GetRooms :many
+SELECT id, name FROM room
+`
+
+func (q *Queries) GetRooms(ctx context.Context) ([]Room, error) {
+	rows, err := q.db.QueryContext(ctx, getRooms)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Room
+	for rows.Next() {
+		var i Room
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getUser = `-- name: GetUser :one
+
+SELECT id, username, email FROM app_user
+WHERE id = ? LIMIT 1
+`
+
+// MARK: User
+func (q *Queries) GetUser(ctx context.Context, id int64) (AppUser, error) {
+	row := q.db.QueryRowContext(ctx, getUser, id)
 	var i AppUser
 	err := row.Scan(&i.ID, &i.Username, &i.Email)
 	return i, err
@@ -58,7 +218,7 @@ SELECT id, username, email FROM app_user
 `
 
 func (q *Queries) GetUsers(ctx context.Context) ([]AppUser, error) {
-	rows, err := q.db.Query(ctx, getUsers)
+	rows, err := q.db.QueryContext(ctx, getUsers)
 	if err != nil {
 		return nil, err
 	}
@@ -71,26 +231,43 @@ func (q *Queries) GetUsers(ctx context.Context) ([]AppUser, error) {
 		}
 		items = append(items, i)
 	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
 	return items, nil
 }
 
+const removeUserFromRoom = `-- name: RemoveUserFromRoom :exec
+DELETE FROM user_room WHERE user_id = ? AND room_id = ?
+`
+
+type RemoveUserFromRoomParams struct {
+	UserID int64
+	RoomID int64
+}
+
+func (q *Queries) RemoveUserFromRoom(ctx context.Context, arg RemoveUserFromRoomParams) error {
+	_, err := q.db.ExecContext(ctx, removeUserFromRoom, arg.UserID, arg.RoomID)
+	return err
+}
+
 const updateUser = `-- name: UpdateUser :exec
 UPDATE app_user
-  set username = $2,
-  email = $3
-WHERE id = $1
+  set username = ?,
+  email = ?
+WHERE id = ?
 `
 
 type UpdateUserParams struct {
-	ID       pgtype.UUID
 	Username string
 	Email    string
+	ID       int64
 }
 
 func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) error {
-	_, err := q.db.Exec(ctx, updateUser, arg.ID, arg.Username, arg.Email)
+	_, err := q.db.ExecContext(ctx, updateUser, arg.Username, arg.Email, arg.ID)
 	return err
 }

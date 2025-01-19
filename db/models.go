@@ -5,30 +5,30 @@
 package db
 
 import (
-	"github.com/jackc/pgx/v5/pgtype"
+	"time"
 )
 
 type AppUser struct {
-	ID       pgtype.UUID
+	ID       int64
 	Username string
 	Email    string
 }
 
 type Message struct {
-	ID           pgtype.UUID
-	CreatedAt    pgtype.Timestamp
+	ID           int64
+	CreatedAt    time.Time
 	Text         string
-	RoomID       pgtype.UUID
-	SenderUserID pgtype.UUID
+	RoomID       int64
+	SenderUserID int64
 }
 
 type Room struct {
-	ID   pgtype.UUID
+	ID   int64
 	Name string
 }
 
 type UserRoom struct {
-	ID     pgtype.UUID
-	UserID pgtype.UUID
-	RoomID pgtype.UUID
+	ID     int64
+	UserID int64
+	RoomID int64
 }
